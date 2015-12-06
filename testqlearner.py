@@ -7,6 +7,7 @@ import random as rand
 import time
 import math
 import QLearner as ql
+import matplotlib.pyplot as plt
 
 # print out the map
 def printmap(data):
@@ -90,7 +91,7 @@ if __name__=="__main__":
     verbose = False #print lots of debug stuff if True
 
     # read in the map
-    inf = open('testworlds/world01.csv')
+    inf = open('testworlds/world04.csv')
     data = np.array([map(float,s.strip().split(',')) for s in inf.readlines()])
     originalmap = data.copy() #make a copy so we can revert to the original map later
 
@@ -101,14 +102,16 @@ if __name__=="__main__":
 
     rand.seed(5)
 
-    learner = ql.QLearner(num_states=100,\
-        num_actions = 4, \
-        rar = 0.98, \
-        radr = 0.9999, \
-        verbose=verbose) #initialize the learner
+    learner = ql.QLearner()
+   # learner = ql.QLearner(num_states=100,\
+    #    num_actions = 4, \
+      #  rar =0.0, \
+       # radr = 0.5, \
+       # verbose=verbose) #initialize the learner
 
     #each iteration involves one trip to the goal
-    for iteration in range(0,10000): 
+    learning_curve=[]
+    for iteration in range(0,750): 
         steps = 0
         data = originalmap.copy()
         robopos = startpos
@@ -124,13 +127,23 @@ if __name__=="__main__":
                 r = -1 #negative reward for not being at the goal
             state = discretize(newpos)
             action = learner.query(state,r)
-
+                      
             data[robopos] = 4 # mark where we've been for map printing
             data[newpos] = 2 # move to new location
+            
             robopos = newpos # update the location
             if verbose: printmap(data)
-            if verbose: time.sleep(1)
+            if verbose: time.sleep(.05)
             steps += 1
+        
+     #       if steps==5000: break  
+            
+     #   print iteration, "," , steps
+        learning_curve.append((iteration,steps))
 
-        print iteration, "," , steps
+        
     printmap(data)
+    x_val = [x[0] for x in learning_curve]
+    y_val = [x[1] for x in learning_curve]
+    log_y_val=[math.log(x[1]) for x in learning_curve]
+    plt.plot(x_val,log_y_val)

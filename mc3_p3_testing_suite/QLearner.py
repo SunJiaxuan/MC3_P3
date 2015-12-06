@@ -26,8 +26,12 @@ class QLearner(object):
         self.radr=radr
         self.alpha=alpha
         self.gamma=gamma
+        self.dyna=dyna
+        self.num_states=num_states
+        
         
         self.q={}
+        print self.rar,self.verbose,self.dyna,self.num_states,self.alpha,self.gamma,self.radr
         
         for s,a in  np.ndindex((num_states,num_actions)): self.q[(s,a)]=np.random.random_integers(-1, 1)
     
@@ -39,7 +43,10 @@ class QLearner(object):
         @returns: The selected action
         """
         self.s = s
-        action = rand.randint(0, self.num_actions-1)
+        #action = rand.randint(0, self.num_actions-1)
+        actions=[self.q.get((s, i), 0.0) for i in range(self.num_actions)]
+        action= np.random.choice([i for i, j in enumerate(actions) if j == max(actions)])        
+        
         if self.verbose: print "s =", s,"a =",action
         return action
 

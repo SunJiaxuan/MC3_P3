@@ -120,7 +120,7 @@ def baseTester():
            totalIter += nIter
            if (lastPolicyLength == policyLength) and (policyLength < 100):
               print 'converged in approx %i iterations' % totalIter
-              print policyLength, myPolicy
+              print policyLength, myPolicy, test[2]
               break
            lastPolicyLength = policyLength
         if (test[1]*1.2 >= totalIter) and (policyLength == test[2]):
