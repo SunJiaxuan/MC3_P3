@@ -111,7 +111,7 @@ if __name__=="__main__":
 
     #each iteration involves one trip to the goal
     learning_curve=[]
-    for iteration in range(0,750): 
+    for iteration in range(0,500): 
         steps = 0
         data = originalmap.copy()
         robopos = startpos

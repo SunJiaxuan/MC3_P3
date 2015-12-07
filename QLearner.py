@@ -15,6 +15,7 @@ class QLearner(object):
         rar = 0.8, \
         radr = 0.9, \
         dyna = 0, \
+        alphar=0.2,\
         verbose = False):
 
         self.verbose = verbose
@@ -28,17 +29,29 @@ class QLearner(object):
         self.gamma=gamma
         self.dyna=dyna
         self.num_states=num_states
+        self.alphar=alphar
+        
         
         
         self.q={}
         
         self.T={}
+        self.Tc={}
         self.R={}
         
-      #  print self.rar,self.verbose,self.dyna,self.num_states,self.alpha,self.gamma,self.radr
+#initiallize Q table, Tc, and R table
+                    
+        for s,a in  np.ndindex((num_states,num_actions)): self.q[(s,a)]=np.random.random_integers(-1, 1) 
         
-        for s,a in  np.ndindex((num_states,num_actions)): self.q[(s,a)]=np.random.random_integers(-1, 1)
-    
+        if self.dyna>0:
+            for i,j,iprime in  np.ndindex((num_states,num_actions,num_states)): 
+                self.Tc[(i,j,iprime)]=.000001
+                
+            for i,j,iprime in  np.ndindex((num_states,num_actions,num_states)):   
+                self.T[(i,j,iprime)]=self.Tc.get((i,j,iprime),0.0)/sum(self.Tc.get((i,j,k),0.0) for k in range(self.num_states))
+               # probabilities=[self.T.get((i,j,k),0.0) for k in range(self.num_states)]
+                #print probabilities
+            for i,j in np.ndindex((num_states,num_actions)):self.R[(i,j)]=0.0             
 
     def querysetstate(self, s):
         """
@@ -61,28 +74,49 @@ class QLearner(object):
         @param r: The ne state
         @returns: The selected action
         """
-        
+        #update q table
         newQmax=max([self.q.get((s_prime, a_prime),0.0) for a_prime in range(self.num_actions)]) 
-           
         self.q[(self.s,self.a)]=((1-self.alpha)*(self.q[(self.s,self.a)])+self.alpha*(r+self.gamma*(newQmax)))
-        
+    
+    
+    
         if np.random.random()<self.rar:
             action = rand.randint(0, self.num_actions-1)
+    
         else:
             actions=[self.q.get((s_prime, i), 0.0) for i in range(self.num_actions)]
             max_A=max(actions)
-            action= np.random.choice([i for i, j in enumerate(actions) if j == max_A])
-
-          
+            action= np.random.choice([i for i, j in enumerate(actions) if j == max_A])     
         self.rar *=self.radr
+       
+       
+#-------------------------Dyna Part
+        if self.dyna>0:
+            self.Tc[(self.s,self.a,s_prime)]+=1
+            for i,j,iprime in  np.ndindex((self.num_states,self.num_actions,self.num_states)):   
+                self.T[(i,j,iprime)]=self.Tc.get((i,j,iprime),0.0)/sum(self.Tc.get((i,j,k),0.0) for k in range(self.num_states))
+           # self.T[(self.s,self.a,s_prime)]=self.Tc.get((self.s,self.a,s_prime),0.0)/sum(self.Tc.get((self.s,self.a,i),0.0) for i in range(self.num_states))
+            self.R[(self.s,self.a)]=(1-self.alphar)*self.R[(self.s,self.a)]+(self.alphar*r)
+
             
-        # blend of highest value + random choice
+            s_random=np.random.random_integers(0,self.num_states-1,self.dyna)
+            a_random=np.random.random_integers(0,self.num_actions-1,self.dyna)
+            for i in range(0,self.dyna):
+               # print i
+                probabilities=[self.T.get((s_random[i],a_random[i],j),0.0) for j in range(self.num_states)]
+                #print (probabilities),'i= ',i
+                s_prime_random=np.random.choice(self.num_states,1,p=probabilities)
+                r_update=self.R.get((s_random[i],a_random[i]))
+                Qmaxupdate=max([self.q.get((s_prime_random[0], a_prime2),0.0) for a_prime2 in range(self.num_actions)])
+                self.q[(s_random[i],a_random[i])]=((1-self.alpha)*(self.q[(s_random[i],a_random[i])])+self.alpha*(r_update+self.gamma*(Qmaxupdate))) 
+ 
+ 
+ #-------------------------Dyna Part
         
         
         if self.verbose: print "s =", s_prime,"a =",action,"r =",r,'q(sp,a)=',self.q[(self.s,self.a)]
         self.a=action
         self.s=s_prime
-        
         return action
 
 if __name__=="__main__":
