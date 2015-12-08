@@ -32,13 +32,14 @@ class QLearner(object):
         self.dyna=dyna
         self.num_states=num_states
         self.alphar=alphar
+        self.itter=0
         
         
         
         self.q={}
         
         self.T={}
-        self.Tc={}
+        #self.Tc={}
         self.R={}
         
 #initiallize Q table, Tc, and R table
@@ -47,14 +48,11 @@ class QLearner(object):
         
         if self.dyna>0:
             
-            for i,j,iprime in  np.ndindex((num_states,num_actions,num_actions1)): 
-                self.Tc[(i,j,iprime)]=.000001
-          #+1 account for n,w,s,e and same state      
-            for i,j,iprime in  np.ndindex((num_states,num_actions,num_actions1)):   
-               self.T[(i,j,iprime)]=self.Tc.get((i,j,iprime),0.0)/sum(self.Tc.get((i,j,k),0.0) for k in range(self.num_actions1))
-            probabilities=[self.T.get((i,j,k),0.0) for k in range(self.num_actions1)]
-            print probabilities
-            for i,j in np.ndindex((num_states,num_actions)):self.R[(i,j)]=0.0             
+            self.Tc=np.empty(num_states*num_actions*num_states).reshape(num_states,num_actions,num_states)
+            self.Tc.fill(0.00001)
+            self.T=self.Tc/self.Tc.sum(axis=2,keepdims=True)  
+
+            for i,j in np.ndindex((num_states,num_actions)):self.R[(i,j)]=-1             
 
     def querysetstate(self, s):
         """
@@ -91,53 +89,31 @@ class QLearner(object):
             max_A=max(actions)
             action= np.random.choice([i for i, j in enumerate(actions) if j == max_A])     
         self.rar *=self.radr
+        self.itter+=1
        
        
 #-------------------------Dyna Part
         if self.dyna>0:
-            print s_prime-self.s
-            if s_prime-self.s == -10: #north
-                    s_prime_A = 0
-            elif s_prime-self.s == +1: #east
-                    s_prime_A = 1
-            elif s_prime-self.s == +10: #east
-                    s_prime_A = 2
-            elif s_prime-self.s == -1: #east
-                    s_prime_A = 3
-            elif s_prime-self.s == 0: #no move
-                    s_prime_A = 4
             
-            self.Tc[(self.s,self.a,s_prime_A)]+=1
-            for i,j,iprime in  np.ndindex((self.num_states,self.num_actions,self.num_actions1)):   
-                self.T[(i,j,iprime)]=self.Tc.get((i,j,iprime),0.0)/sum(self.Tc.get((i,j,k),0.0) for k in range(self.num_actions+1))
-           # self.T[(self.s,self.a,s_prime)]=self.Tc.get((self.s,self.a,s_prime),0.0)/sum(self.Tc.get((self.s,self.a,i),0.0) for i in range(self.num_states))
-            self.R[(self.s,self.a)]=(1-self.alphar)*self.R[(self.s,self.a)]+(self.alphar*r)
+            self.Tc[self.s,self.a,s_prime]+=1
+            self.T=self.Tc/self.Tc.sum(axis=2,keepdims=True) 
+            #print self.T
+            self.R[(self.s,self.a)]=(1-self.alphar)*(self.R[(self.s,self.a)])+(self.alphar*r)
 
             
-            s_random=np.random.random_integers(0,self.num_states-1,self.dyna)
-            a_random=np.random.random_integers(0,self.num_actions-1,self.dyna)
-            
+            dyna_s=np.random.random_integers(0,self.num_states-1,self.dyna)
+            dyna_a=np.random.random_integers(0,self.num_actions-1,self.dyna)
+          
+        if self.dyna>0 and self.itter>2:
+             
             for i in range(0,self.dyna):
-               # print i
-                probabilities=[self.T.get((s_random[i],a_random[i],j),0.0) for j in range(self.num_actions+1)]
-               
-                a_choose=np.random.choice(self.num_actions1,1,p=probabilities)
-              #  print (probabilities),a_choose,'i= ',i
-                if a_choose[0] == 0: #north
-                    s_prime_random = s_random[i] - 10
-                elif a_choose[0] == 1: #east
-                    s_prime_random = s_random[i] + 1
-                elif a_choose[0] == 2: #south
-                    s_prime_random = s_random[i] + 10
-                elif a_choose[0]  == 3: #west
-                    s_prime_random = s_random[i] - 1
-                elif a_choose[0] == 4: #no move
-                    s_prime_random = s_random[i]
-              #  print s_random[i],a_random[i],s_prime_random
+                #print i
+                               
+                dyna_s_prime=np.random.choice(self.num_states,1,replace=True,p=self.T[dyna_s[i],dyna_a[i],])
                 
-                r_update=self.R.get((s_random[i],a_random[i]))
-                Qmaxupdate=max([self.q.get((s_prime_random, a_prime2),0.0) for a_prime2 in range(self.num_actions)])
-                self.q[(s_random[i],a_random[i])]=((1-self.alpha)*(self.q[(s_random[i],a_random[i])])+self.alpha*(r_update+self.gamma*(Qmaxupdate))) 
+                dyna_r=self.R.get((dyna_s[i],dyna_a[i]),0.0)
+                Qmaxupdate=max([self.q.get((dyna_s_prime[0], a_prime2),0.0) for a_prime2 in range(self.num_actions)])
+                self.q[(dyna_s[i],dyna_a[i])]=((1-self.alpha)*(self.q[(dyna_s[i],dyna_a[i])])+self.alpha*(dyna_r+self.gamma*(Qmaxupdate))) 
  
  
  #-------------------------Dyna Part

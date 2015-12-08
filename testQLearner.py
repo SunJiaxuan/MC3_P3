@@ -95,7 +95,7 @@ def baseTester():
                   ('testEasyWorld.csv', 700, 13, {'rar': 0.05}, 'Test Exploration'),
                   ('testEasyWorld.csv', 700, 13, {'radr': 0.8}, 'Test Exploration Decay'),
                   ('testGridWorld.csv', 3000, 20, {'gamma':0.8}, 'Test Discount Rate'),
-                  ('testGridWorld.csv', 1000, 20, {'dyna':10}, 'Test Dyna'),
+                  ('testGridWorld.csv', 1000, 20, {'dyna':100}, 'Test Dyna'),
                   ]
     for test in myTestList:
         print '-------------------------------'
